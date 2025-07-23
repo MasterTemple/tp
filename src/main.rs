@@ -39,10 +39,15 @@ fn tp_dir() -> AnyResult<PathBuf> {
     Ok(dir)
 }
 
+fn template_dir() -> AnyResult<PathBuf> {
+    Ok(tp_dir()?.join("templates"))
+}
+
+
 const INDEX_FILE: &'static str = "main.typ";
 
 fn ensure_templates_exist() -> AnyResult<()> {
-    let dir = tp_dir()?;
+    let dir = template_dir()?;
     let none = dir.join("None");
     let none_index_file = none.join(INDEX_FILE);
     if !none.exists() {
@@ -58,7 +63,7 @@ fn main() -> AnyResult<()> {
     let re = Regex::new("[^/]+$").unwrap();
     let args = Args::parse();
 
-    let dir = fs::read_dir(tp_dir()?)?;
+    let dir = fs::read_dir(template_dir()?)?;
     let templates: BTreeMap<String, PathBuf> = dir.into_iter().filter_map(|file| {
         let file = file.ok()?;
         let file_type = file.file_type().ok()?;
