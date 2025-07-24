@@ -1,4 +1,4 @@
-# tp
+# tp 🧻
 
 _Create Typst Projects from Local Templates_
 
