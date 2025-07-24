@@ -8,6 +8,11 @@ You can either create new projects with their own directory with `tp new`, or yo
 
 I have created this because I find that I am repeatedly wanting to use the same Typst config across different papers I write.
 
+## Installation
+
+```bash
+cargo install --git https://github.com/MasterTemple/tp
+```
 
 ## Examples
 
@@ -21,7 +26,7 @@ templates/
     └── main.typ
 ```
 
-## Create New (Interactive)
+### Create New (Interactive)
 
 ```bash
 ❯ tp new
@@ -37,7 +42,7 @@ Some Cool Project/
 └── main.typ
 ```
 
-## Initialize Current Directory (Interactive)
+### Initialize Current Directory (Interactive)
 
 Given an empty folder `An Already Created Folder`
 ```bash
