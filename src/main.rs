@@ -1,19 +1,73 @@
 use std::{collections::BTreeMap, fs, io, path::{Path, PathBuf}};
 
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use inquire::{Select, Text};
 use regex::Regex;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    #[arg(short, long)]
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand, Debug)]
+enum Commands {
+    /// Create a new project from a template
+    New {
+        /// The project name
+        #[arg(short, long)]
+        project: Option<String>,
+
+        /// The template to use
+        #[arg(short, long)]
+        template: Option<String>,
+
+        /// Whether or not to rename `main.typ` to `<Project>.typ`
+        #[arg(short, long)]
+        no_main: bool,
+    },
+    /// Initialize a new project in the current directory
+    Init {
+        /// The template to use
+        #[arg(short, long)]
+        template: Option<String>,
+
+        /// Whether or not to rename `main.typ` to `<Project>.typ`
+        #[arg(short, long)]
+        no_main: bool,
+    },
+}
+
+struct ParsedCmd {
     project: Option<String>,
-    #[arg(short, long)]
     template: Option<String>,
-    /// Whether or not to rename `main.typ` to `<Project>.typ`
-    #[arg(short, long)]
-    no_rename: bool,
+    no_main: bool,
+    use_current_directory: bool,
+}
+
+impl ParsedCmd {
+    pub fn new(cmd: Commands) -> Self {
+        match cmd {
+            Commands::New { project, template, no_main } => {
+                Self { project, template, no_main, use_current_directory: false }
+            },
+            Commands::Init { template, no_main } => {
+                let current_dir = std::env::current_dir()
+                    .expect("Failed to get current directory");
+                let project = current_dir.file_name()
+                    .expect("Invalid directory name")
+                    .to_string_lossy()
+                    .to_string();
+                Self {
+                    project: Some(project),
+                    template,
+                    no_main,
+                    use_current_directory: true,
+                }
+            },
+        }
+    }
 }
 
 pub type AnyResult<T> = Result<T, Box<dyn std::error::Error>>;
@@ -63,6 +117,8 @@ fn main() -> AnyResult<()> {
     let re = Regex::new("[^/]+$").unwrap();
     let args = Args::parse();
 
+    let ParsedCmd { project, template, no_main, use_current_directory } = ParsedCmd::new(args.command);
+
     let dir = fs::read_dir(template_dir()?)?;
     let templates: BTreeMap<String, PathBuf> = dir.into_iter().filter_map(|file| {
         let file = file.ok()?;
@@ -77,13 +133,13 @@ fn main() -> AnyResult<()> {
     }).collect();
 
     // prompt for project name
-    let project = match args.project {
+    let project = match project {
         Some(p) => p,
         None => Text::new("Enter a project name:").prompt()?
     };
 
     // check if template is valid
-    let given_template = args.template.map(|template| {
+    let given_template = template.map(|template| {
         match templates.contains_key(&template) {
             true => Ok(template),
             false => {
@@ -100,13 +156,17 @@ fn main() -> AnyResult<()> {
     };
 
 
-    let template_dir = templates.get(&template).ok_or_else(|| "Invalid template selected.")?;
-    let new_dir = PathBuf::from(&project);
+    let new_dir = if use_current_directory {
+        PathBuf::from(".")
+    } else {
+        PathBuf::from(&project)
+    };
     fs::create_dir_all(&new_dir)?;
 
+    let template_dir = templates.get(&template).ok_or_else(|| "Invalid template selected.")?;
     copy_dir_all(template_dir, &new_dir)?;
 
-    if !args.no_rename {
+    if no_main {
         fs::rename(new_dir.join(INDEX_FILE), new_dir.join(format!("{}.typ", &project)))?;
     }
 
