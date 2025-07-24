@@ -2,10 +2,71 @@
 
 _Create Typst Projects from Local Templates_
 
+This is an interactive CLI tool, but you may specify arguments to skip prompts.
+
+You can either create new projects with their own directory with `tp new`, or you can initialize a project in the current directory with `tp init`.
+
 I have created this because I find that I am repeatedly wanting to use the same Typst config across different papers I write.
 
 
-## Usage
+## Examples
+
+Given your templates folder looks like this:
+```bash
+templates/
+├── Template 1
+│   ├── conf.typ
+│   └── main.typ
+└── None
+    └── main.typ
+```
+
+## Create New (Interactive)
+
+```bash
+❯ tp new
+> Enter a project name: Some Cool Project
+> Select a template: Template 1
+```
+
+results in
+
+```bash
+Some Cool Project/
+├── conf.typ
+└── main.typ
+```
+
+## Initialize Current Directory (Interactive)
+
+Given an empty folder `An Already Created Folder`
+```bash
+❯ tp init
+> Select a template: Default
+```
+
+results in
+
+```bash
+.
+├── conf.typ
+└── main.typ
+```
+
+## Template Locations
+
+All templates are taken from `{data_dir}/tp/templates/` where [`data_dir`](https://docs.rs/dirs-next/2.0.0/dirs_next/fn.data_dir.html) is determined by your OS:
+
+| Platform | Value                                    | Example                                  |
+| -------- | ---------------------------------------- | ---------------------------------------- |
+| Linux    | `$XDG_DATA_HOME` or `$HOME`/.local/share | /home/alice/.local/share                 |
+| macOS    | `$HOME`/Library/Application Support      | /Users/Alice/Library/Application Support |
+| Windows  | `{FOLDERID_RoamingAppData}`              | C:\Users\Alice\AppData\Roaming           |
+
+The `None` template is automatically generated and just creates an empty `.typ` file.
+
+
+## CLI Usage
 
 All arguments beyond the initial command (`new` or `init`) are optional, because there will be interactive prompts to enter the necessary information.
 
