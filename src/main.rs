@@ -1,4 +1,8 @@
-use std::{collections::BTreeMap, fs, io, path::{Path, PathBuf}};
+use std::{
+    collections::BTreeMap,
+    fs, io,
+    path::{Path, PathBuf},
+};
 
 use clap::{Parser, Subcommand};
 use inquire::{Select, Text};
@@ -37,6 +41,8 @@ enum Commands {
         #[arg(short, long)]
         no_main: bool,
     },
+    /// Print the template directory
+    Dir,
 }
 
 struct ParsedCmd {
@@ -47,15 +53,23 @@ struct ParsedCmd {
 }
 
 impl ParsedCmd {
+    /// Do not call this on the [`Dir`] variant or I will panic :)
     pub fn new(cmd: Commands) -> Self {
         match cmd {
-            Commands::New { project, template, no_main } => {
-                Self { project, template, no_main, use_current_directory: false }
+            Commands::New {
+                project,
+                template,
+                no_main,
+            } => Self {
+                project,
+                template,
+                no_main,
+                use_current_directory: false,
             },
             Commands::Init { template, no_main } => {
-                let current_dir = std::env::current_dir()
-                    .expect("Failed to get current directory");
-                let project = current_dir.file_name()
+                let current_dir = std::env::current_dir().expect("Failed to get current directory");
+                let project = current_dir
+                    .file_name()
                     .expect("Invalid directory name")
                     .to_string_lossy()
                     .to_string();
@@ -65,7 +79,8 @@ impl ParsedCmd {
                     no_main,
                     use_current_directory: true,
                 }
-            },
+            }
+            Commands::Dir => panic!("This should be called"),
         }
     }
 }
@@ -97,7 +112,6 @@ fn template_dir() -> AnyResult<PathBuf> {
     Ok(tp_dir()?.join("templates"))
 }
 
-
 const INDEX_FILE: &'static str = "main.typ";
 
 fn ensure_templates_exist() -> AnyResult<()> {
@@ -112,49 +126,61 @@ fn ensure_templates_exist() -> AnyResult<()> {
 }
 
 fn main() -> AnyResult<()> {
-
     ensure_templates_exist()?;
     let re = Regex::new("[^/]+$").unwrap();
     let args = Args::parse();
 
-    let ParsedCmd { project, template, no_main, use_current_directory } = ParsedCmd::new(args.command);
+    if let Commands::Dir = args.command {
+        println!("Template Directory: {:?}", template_dir()?);
+        return Ok(());
+    }
+
+    let ParsedCmd {
+        project,
+        template,
+        no_main,
+        use_current_directory,
+    } = ParsedCmd::new(args.command);
 
     let dir = fs::read_dir(template_dir()?)?;
-    let templates: BTreeMap<String, PathBuf> = dir.into_iter().filter_map(|file| {
-        let file = file.ok()?;
-        let file_type = file.file_type().ok()?;
-        if !file_type.is_dir() { None? };
+    let templates: BTreeMap<String, PathBuf> = dir
+        .into_iter()
+        .filter_map(|file| {
+            let file = file.ok()?;
+            let file_type = file.file_type().ok()?;
+            if !file_type.is_dir() {
+                None?
+            };
 
-        let file_name = file.file_name();
-        let template = re.find(file_name.to_str()?)?.as_str().to_string();
-        let path = file.path();
+            let file_name = file.file_name();
+            let template = re.find(file_name.to_str()?)?.as_str().to_string();
+            let path = file.path();
 
-        Some((template, path))
-    }).collect();
+            Some((template, path))
+        })
+        .collect();
 
     // prompt for project name
     let project = match project {
         Some(p) => p,
-        None => Text::new("Enter a project name:").prompt()?
+        None => Text::new("Enter a project name:").prompt()?,
     };
 
     // check if template is valid
-    let given_template = template.map(|template| {
-        match templates.contains_key(&template) {
+    let given_template = template
+        .map(|template| match templates.contains_key(&template) {
             true => Ok(template),
-            false => {
-                Err("Invalid template provided")
-            },
-        }
-    }).transpose()?;
+            false => Err("Invalid template provided"),
+        })
+        .transpose()?;
 
     // prompt for template
     let template = match given_template {
         Some(given) => given,
         None => Select::new("Select a template:", templates.keys().collect())
-            .prompt()?.clone(),
+            .prompt()?
+            .clone(),
     };
-
 
     let new_dir = if use_current_directory {
         PathBuf::from(".")
@@ -163,11 +189,16 @@ fn main() -> AnyResult<()> {
     };
     fs::create_dir_all(&new_dir)?;
 
-    let template_dir = templates.get(&template).ok_or_else(|| "Invalid template selected.")?;
+    let template_dir = templates
+        .get(&template)
+        .ok_or_else(|| "Invalid template selected.")?;
     copy_dir_all(template_dir, &new_dir)?;
 
     if no_main {
-        fs::rename(new_dir.join(INDEX_FILE), new_dir.join(format!("{}.typ", &project)))?;
+        fs::rename(
+            new_dir.join(INDEX_FILE),
+            new_dir.join(format!("{}.typ", &project)),
+        )?;
     }
 
     Ok(())

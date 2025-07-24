@@ -58,6 +58,13 @@ results in
 └── main.typ
 ```
 
+### Get Template Directory
+
+```bash
+❯ tp dir
+Template Directory: "/home/dgmastertemple/.local/share/tp/templates"
+```
+
 ## Template Locations
 
 All templates are taken from `{data_dir}/tp/templates/` where [`data_dir`](https://docs.rs/dirs-next/2.0.0/dirs_next/fn.data_dir.html) is determined by your OS:
@@ -82,6 +89,7 @@ Usage: tp <COMMAND>
 Commands:
   new   Create a new project from a template
   init  Initialize a new project in the current directory
+  dir   Print the template directory
   help  Print this message or the help of the given subcommand(s)
 
 Options:
@@ -116,4 +124,16 @@ Options:
   -t, --template <TEMPLATE>  The template to use
   -n, --no-main              Whether or not to rename `main.typ` to `<Project>.typ`
   -h, --help                 Print help
+```
+
+## `tp dir`
+
+```bash
+❯ tp dir -h
+Print the template directory
+
+Usage: tp dir
+
+Options:
+  -h, --help  Print help
 ```
