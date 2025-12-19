@@ -131,7 +131,8 @@ fn main() -> AnyResult<()> {
     let args = Args::parse();
 
     if let Commands::Dir = args.command {
-        println!("Template Directory: {:?}", template_dir()?);
+        // println!("Template Directory: {:?}", template_dir()?);
+        println!("{}", template_dir()?.to_string_lossy());
         return Ok(());
     }
 
